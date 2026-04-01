@@ -17,7 +17,7 @@ namespace NukeLock.Events
         public void OnStarting(StartingEventArgs ev)
         {
             if (plugin.Config.WarheadDetonationTimer)
-                plugin.detonationCoroutine = Timing.RunCoroutine(DetonationTimer());
+                plugin.DetonationCoroutine = Timing.RunCoroutine(DetonationTimer());
         }
 
         public void OnStopping(StoppingEventArgs ev)
@@ -29,7 +29,7 @@ namespace NukeLock.Events
                 ev.Player.ShowHint(plugin.Config.HintMessage, plugin.Config.HintTime);
 
             if (plugin.Config.WarheadDetonationTimer)
-                Timing.KillCoroutines(plugin.detonationCoroutine);
+                Timing.KillCoroutines(plugin.DetonationCoroutine);
 
             ev.IsAllowed = false;
         }
@@ -40,7 +40,7 @@ namespace NukeLock.Events
                 Map.Broadcast(5, plugin.Config.RadiationWarningMessage, Broadcast.BroadcastFlags.Normal, true);
 
             if (plugin.Config.RadiationDelay > 0)
-                plugin.radiationCoroutine = Timing.RunCoroutine(Radiation());
+                plugin.RadiationCoroutine = Timing.RunCoroutine(Radiation());
         }
 
         private IEnumerator<float> Radiation()

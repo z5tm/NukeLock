@@ -14,12 +14,12 @@ namespace NukeLock
         public override Version Version => new Version(1, 11, 0);
         public override Version RequiredExiledVersion => new Version(6, 0, 0);
 
-        public CoroutineHandle nukeCoroutine;
-        public CoroutineHandle radiationCoroutine;
-        public CoroutineHandle detonationCoroutine;
+        public CoroutineHandle NukeCoroutine;
+        public CoroutineHandle RadiationCoroutine;
+        public CoroutineHandle DetonationCoroutine;
 
-        private WarheadHandler warheadHandler;
-        private ServerHandler serverHandler;
+        private WarheadHandler? _warheadHandler;
+        private ServerHandler? _serverHandler;
 
         public override void OnEnabled()
         {
@@ -35,34 +35,38 @@ namespace NukeLock
 
         private void RegisterEvents()
         {
-            warheadHandler = new WarheadHandler(this);
-            serverHandler = new ServerHandler(this);
+            _warheadHandler = new WarheadHandler(this);
+            _serverHandler = new ServerHandler(this);
 
             // Server
-            Server.RoundStarted += serverHandler.OnRoundStarted;
-            Server.WaitingForPlayers += serverHandler.OnWaitingForPlayers;
-            Server.RestartingRound += serverHandler.OnRestartingRound;
+            Server.RoundStarted += _serverHandler.OnRoundStarted;
+            Server.WaitingForPlayers += _serverHandler.OnWaitingForPlayers;
+            Server.RestartingRound += _serverHandler.OnRestartingRound;
 
             // Warhead
-            Warhead.Starting += warheadHandler.OnStarting;
-            Warhead.Stopping += warheadHandler.OnStopping;
-            Warhead.Detonated += warheadHandler.OnDetonated;
+            Warhead.Starting += _warheadHandler.OnStarting;
+            Warhead.Stopping += _warheadHandler.OnStopping;
+            Warhead.Detonated += _warheadHandler.OnDetonated;
         }
 
         private void UnregisterEvents()
         {
             // Server
-            Server.RoundStarted -= serverHandler.OnRoundStarted;
-            Server.WaitingForPlayers -= serverHandler.OnWaitingForPlayers;
-            Server.RestartingRound -= serverHandler.OnRestartingRound;
-
+            if (_serverHandler != null)
+            {
+                Server.RoundStarted -= _serverHandler.OnRoundStarted;
+                Server.WaitingForPlayers -= _serverHandler.OnWaitingForPlayers;
+                Server.RestartingRound -= _serverHandler.OnRestartingRound;
+            }
             // Warhead
-            Warhead.Starting -= warheadHandler.OnStarting;
-            Warhead.Stopping -= warheadHandler.OnStopping;
-            Warhead.Detonated -= warheadHandler.OnDetonated;
-
-            warheadHandler = null;
-            serverHandler = null;
+            if (_warheadHandler != null)
+            {
+                Warhead.Starting -= _warheadHandler.OnStarting;
+                Warhead.Stopping -= _warheadHandler.OnStopping;
+                Warhead.Detonated -= _warheadHandler.OnDetonated;
+            }
+            _warheadHandler = null;
+            _serverHandler = null;
         }
     }
 }

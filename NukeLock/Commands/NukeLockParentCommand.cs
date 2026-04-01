@@ -11,11 +11,11 @@ namespace NukeLock.Commands
     {
         public NukeLockParentCommand() => LoadGeneratedCommands();
 
-        public override string Command { get; } = "nukelock";
-        public override string[] Aliases { get; } = { "nl" };
-        public override string Description { get; } = "Parent command for NukeLock";
+        public override string Command => "nukelock";
+        public override string[] Aliases => ["nl"];
+        public override string Description => "Parent command for NukeLock";
 
-        public override void LoadGeneratedCommands()
+        public sealed override void LoadGeneratedCommands()
         {
             RegisterCommand(new Arm());
             RegisterCommand(new Lock());
