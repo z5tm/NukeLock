@@ -8,77 +8,77 @@ namespace NukeLock.Events
 {
     internal sealed class ServerHandler
     {
-        public NukeLock plugin;
-        public ServerHandler(NukeLock plugin) => this.plugin = plugin;
+        private readonly NukeLock _plugin;
+        public ServerHandler(NukeLock plugin) => _plugin = plugin;
 
-        private int AutoNukeTime = 0;
+        private int _autoNukeTime; // removed = 0 cuz redundancy !
 
         public void OnRoundStarted()
         {
-            Warhead.IsLocked = plugin.Config.WarheadCancelable;
-            Warhead.LeverStatus = plugin.Config.WarheadAutoArmed;
+            Warhead.IsLocked = _plugin.Config.WarheadCancelable;
+            Warhead.LeverStatus = _plugin.Config.WarheadAutoArmed;
 
-            if (plugin.Config.AutoNuke > 0)
-                plugin.nukeCoroutine = Timing.RunCoroutine(AutoNuke());
+            if (_plugin.Config.AutoNuke > 0)
+                _plugin.NukeCoroutine = Timing.RunCoroutine(AutoNuke());
         }
 
         public void OnRestartingRound()
         {
-            Timing.KillCoroutines(plugin.nukeCoroutine, plugin.radiationCoroutine, plugin.detonationCoroutine);
+            Timing.KillCoroutines(_plugin.NukeCoroutine, _plugin.RadiationCoroutine, _plugin.DetonationCoroutine);
         }
 
         public void OnWaitingForPlayers()
         {
-            Timing.KillCoroutines(plugin.nukeCoroutine, plugin.radiationCoroutine, plugin.detonationCoroutine);
+            Timing.KillCoroutines(_plugin.NukeCoroutine, _plugin.RadiationCoroutine, _plugin.DetonationCoroutine);
 
-            if (plugin.Config.WarheadColor.Red >= 0 || plugin.Config.WarheadColor.Blue >= 0 || plugin.Config.WarheadColor.Green >= 0)
+            if (_plugin.Config.WarheadColor.Red >= 0 || _plugin.Config.WarheadColor.Blue >= 0 || _plugin.Config.WarheadColor.Green >= 0)
                 foreach (Room room in Room.List)
-                    if (room != null && room.FlickerableLightController != null)
-                        room.FlickerableLightController.WarheadLightColor = new UnityEngine.Color(plugin.Config.WarheadColor.Red / 255, plugin.Config.WarheadColor.Green / 255, plugin.Config.WarheadColor.Blue / 255);
+                    if (room != null && room.RoomLightController != null)
+                        room.RoomLightController.OverrideColor = new UnityEngine.Color(_plugin.Config.WarheadColor.Red / 255, _plugin.Config.WarheadColor.Green / 255, _plugin.Config.WarheadColor.Blue / 255);
         }
 
         public void OnRespawningTeam(RespawningTeamEventArgs ev)
         {
-            if (plugin.Config.WarheadDisablesTeamRespawn && Warhead.IsDetonated)
+            if (_plugin.Config.WarheadDisablesTeamRespawn && Warhead.IsDetonated)
                 ev.IsAllowed = false;
         }
 
         private IEnumerator<float> AutoNuke()
         {
-            AutoNukeTime = plugin.Config.AutoNuke;
+            _autoNukeTime = _plugin.Config.AutoNuke;
 
-            while (AutoNukeTime > 0)
+            while (_autoNukeTime > 0)
             {
                 yield return Timing.WaitForSeconds(1f);
 
                 if (Warhead.IsDetonated)
                     yield break;
 
-                if (AutoNukeTime <= plugin.Config.AutoNukePermaBroadcastTimer)
+                if (_autoNukeTime <= _plugin.Config?.AutoNukePermaBroadcastTimer)
                 {
-                    string message = plugin.Config.AutoNukePermaBroadcastMessage.Replace("%COUNTDOWN%", AutoNukeTime.ToString());
-                    if (AutoNukeTime <= 1)
+                    string message = _plugin.Config.AutoNukePermaBroadcastMessage.Replace("%COUNTDOWN%", _autoNukeTime.ToString());
+                    if (_autoNukeTime <= 1)
                         message = message.Replace("seconds", "second");
                     Map.Broadcast(1, message, Broadcast.BroadcastFlags.Normal, true);
                 }
 
-                if (plugin.Config.CassieWarnings.Count > 0 && plugin.Config.CassieWarnings != null)
+                if (_plugin.Config?.CassieWarnings?.Count > 0 && _plugin.Config?.CassieWarnings != null)
                 {
-                    foreach (var cassie in plugin.Config.CassieWarnings)
+                    foreach (var msg in _plugin.Config.CassieWarnings)
                     {
-                        float cassie_duration = Cassie.CalculateDuration(cassie.Value);
-                        double annoucement = cassie.Key + Math.Round(cassie_duration, 0);
-                        if (annoucement == AutoNukeTime)
-                            Cassie.Message(cassie.Value);
+                        float cassie_duration = Exiled.API.Features.Cassie.CalculateDuration(msg.Value);
+                        double announcement = msg.Key + Math.Round(cassie_duration, 0);
+                        if (announcement == _autoNukeTime)
+                            Exiled.API.Features.Cassie.Message(msg.Value);
                     }
                 }
-                AutoNukeTime -= 1;
+                _autoNukeTime -= 1;
             }
 
             yield return Timing.WaitForSeconds(1f);
 
-            if (plugin.Config.DetonationBroadcastTime > 0)
-                Map.Broadcast(plugin.Config.DetonationBroadcastTime, plugin.Config.DetonationBroadcastMessage, Broadcast.BroadcastFlags.Normal, true);
+            if (_plugin.Config?.DetonationBroadcastTime > 0)
+                Map.Broadcast(_plugin.Config.DetonationBroadcastTime, _plugin.Config.DetonationBroadcastMessage, Broadcast.BroadcastFlags.Normal, true);
             Warhead.LeverStatus = true;
             Warhead.IsLocked = true;
             Warhead.Start();
