@@ -3,6 +3,7 @@ using Exiled.Events.EventArgs.Server;
 using MEC;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 
 namespace NukeLock.Events
 {
@@ -11,7 +12,7 @@ namespace NukeLock.Events
         private readonly NukeLock _plugin;
         public ServerHandler(NukeLock plugin) => _plugin = plugin;
 
-        private int _autoNukeTime; // removed = 0 cuz redundancy !
+        private double _autoNukeTime; // removed = 0 cuz redundancy !
 
         public void OnRoundStarted()
         {
@@ -31,10 +32,10 @@ namespace NukeLock.Events
         {
             Timing.KillCoroutines(_plugin.NukeCoroutine, _plugin.RadiationCoroutine, _plugin.DetonationCoroutine);
 
-            if (_plugin.Config.WarheadColor.Red >= 0 || _plugin.Config.WarheadColor.Blue >= 0 || _plugin.Config.WarheadColor.Green >= 0)
+            if (_plugin.Config.WarheadColor.Red != 0 || _plugin.Config.WarheadColor.Blue != 0 || _plugin.Config.WarheadColor.Green != 0)
                 foreach (Room room in Room.List)
                     if (room != null && room.RoomLightController != null)
-                        room.RoomLightController.OverrideColor = new UnityEngine.Color(_plugin.Config.WarheadColor.Red / 255, _plugin.Config.WarheadColor.Green / 255, _plugin.Config.WarheadColor.Blue / 255);
+                        room.RoomLightController.NetworkOverrideColor = new UnityEngine.Color(_plugin.Config.WarheadColor.Red / 255f, _plugin.Config.WarheadColor.Green / 255f, _plugin.Config.WarheadColor.Blue / 255f);
         }
 
         public void OnRespawningTeam(RespawningTeamEventArgs ev)
@@ -56,7 +57,7 @@ namespace NukeLock.Events
 
                 if (_autoNukeTime <= _plugin.Config?.AutoNukePermaBroadcastTimer)
                 {
-                    string message = _plugin.Config.AutoNukePermaBroadcastMessage.Replace("%COUNTDOWN%", _autoNukeTime.ToString());
+                    string message = _plugin.Config.AutoNukePermaBroadcastMessage.Replace("%COUNTDOWN%", _autoNukeTime.ToString(CultureInfo.CurrentCulture));
                     if (_autoNukeTime <= 1)
                         message = message.Replace("seconds", "second");
                     Map.Broadcast(1, message, Broadcast.BroadcastFlags.Normal, true);
@@ -66,19 +67,31 @@ namespace NukeLock.Events
                 {
                     foreach (var msg in _plugin.Config.CassieWarnings)
                     {
-                        float cassie_duration = Exiled.API.Features.Cassie.CalculateDuration(msg.Value);
-                        double announcement = msg.Key + Math.Round(cassie_duration, 0);
-                        if (announcement == _autoNukeTime)
+                        float cassieDuration = Exiled.API.Features.Cassie.CalculateDuration(msg.Value);
+                        double announcement = msg.Key + Math.Round(cassieDuration, 0);
+                        if (announcement == _autoNukeTime) // swap to coroutine instead of this.
                             Exiled.API.Features.Cassie.Message(msg.Value);
                     }
                 }
                 _autoNukeTime -= 1;
             }
 
-            yield return Timing.WaitForSeconds(1f);
+            // if (_plugin.Config?.CassieWarnings != null)
+            // {
+                // foreach (var time in _plugin.Config.CassieWarnings)
+                
+                // for (int i = 0; i < _plugin.Config.CassieWarnings.Count; i++)
+                // {
+                //     var io = _plugin.Config.CassieWarnings.Comparer;
+                // }
 
-            if (_plugin.Config?.DetonationBroadcastTime > 0)
-                Map.Broadcast(_plugin.Config.DetonationBroadcastTime, _plugin.Config.DetonationBroadcastMessage, Broadcast.BroadcastFlags.Normal, true);
+                yield return Timing.WaitForSeconds(1f);
+
+                if (_plugin.Config?.DetonationBroadcastTime > 0)
+                    Map.Broadcast(_plugin.Config.DetonationBroadcastTime, _plugin.Config.DetonationBroadcastMessage,
+                        Broadcast.BroadcastFlags.Normal, true);
+            // }
+
             Warhead.LeverStatus = true;
             Warhead.IsLocked = true;
             Warhead.Start();

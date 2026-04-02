@@ -2,8 +2,8 @@
 {
     public class Colors
     {
-        public int Red { get; set; } = 255;
-        public int Green { get; set; } = 255;
-        public int Blue { get; set; } = 255;
+        public byte Red { get; set; }
+        public byte Green { get; set; }
+        public byte Blue { get; set; }
     }
 }
