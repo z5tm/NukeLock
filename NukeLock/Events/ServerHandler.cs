@@ -75,22 +75,12 @@ namespace NukeLock.Events
                 }
                 _autoNukeTime -= 1;
             }
-
-            // if (_plugin.Config?.CassieWarnings != null)
-            // {
-                // foreach (var time in _plugin.Config.CassieWarnings)
-                
-                // for (int i = 0; i < _plugin.Config.CassieWarnings.Count; i++)
-                // {
-                //     var io = _plugin.Config.CassieWarnings.Comparer;
-                // }
-
-                yield return Timing.WaitForSeconds(1f);
+            
+            yield return Timing.WaitForSeconds(1f);
 
                 if (_plugin.Config?.DetonationBroadcastTime > 0)
                     Map.Broadcast(_plugin.Config.DetonationBroadcastTime, _plugin.Config.DetonationBroadcastMessage,
                         Broadcast.BroadcastFlags.Normal, true);
-            // }
 
             Warhead.LeverStatus = true;
             Warhead.IsLocked = true;
