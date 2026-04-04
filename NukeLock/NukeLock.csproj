@@ -15,7 +15,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="ILRepack.Lib.MSBuild.Task" Version="2.0.44.2" PrivateAssets="all"/>
-    <PackageReference Include="ExMod.Exiled" Version="9.13.3" />
+    <PackageReference Include="ExMod.Exiled" Version="9.13.2" />
     <PackageReference Include="Mono.HttpUtility" Version="1.0.0.1"/>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3"/>
     <PackageReference Include="BigHelp.Http" Version="0.3.2"/>
