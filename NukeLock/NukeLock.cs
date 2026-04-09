@@ -2,71 +2,105 @@
 using MEC;
 using NukeLock.Events;
 using System;
+using LabApi.Events.Handlers;
+using LabApi.Features.Console;
+using NukeLock.Configs;
 using Server = Exiled.Events.Handlers.Server;
 using Warhead = Exiled.Events.Handlers.Warhead;
 
-namespace NukeLock
+namespace NukeLock;
+
+public class NukeLock : Plugin<Config>
 {
-    public class NukeLock : Plugin<Config>
+    public static NukeLock? Instance;
+    public override string Author => "Marco15453";
+    public override string Name => "NukeLock";
+    public override Version Version => new Version(1, 11, 0);
+
+    public CoroutineHandle NukeCoroutine;
+    public CoroutineHandle CassieWarnings; // related to NukeCoroutine directly
+    public CoroutineHandle RadiationCoroutine;
+    public CoroutineHandle DetonationCoroutine;
+
+    public static bool CassieWarningsCalled;
+    public static bool AutoNukeTimerCalled;
+    public static bool RadiationCalled;
+
+    internal WarheadHandler? WarheadHandler;
+    internal ServerHandler? ServerHandler;
+    
+    public override void OnEnabled()
     {
-        public override string Author => "Marco15453";
-        public override string Name => "NukeLock";
-        public override Version Version => new Version(1, 11, 0);
-        public override Version RequiredExiledVersion => new (9,13,2);
+        Instance = this;
+        Logger.Debug("OnEnabled has begun!");
+        RegisterEvents();
+        Logger.Debug("OnEnabled here, just finished calling RegisterEvents.. Going to base.OnEnabled();, and settings WaiedForTime back to 0!");
+        ServerHandler.WaitedForTime = 0;
+        base.OnEnabled();
+        Logger.Debug("OnEnabled done!");
+    }
 
-        public CoroutineHandle NukeCoroutine;
-        public CoroutineHandle RadiationCoroutine;
-        public CoroutineHandle DetonationCoroutine;
+    public override void OnDisabled()
+    {
+        Logger.Debug("OnDisable events called!");
+        UnregisterEvents();
+        Logger.Debug("Unregister events continuing, just called unregister events..");
+        base.OnDisabled();
+        Logger.Debug("OnDisabled done!");
+    }
 
-        private WarheadHandler? _warheadHandler;
-        private ServerHandler? _serverHandler;
+    private void RegisterEvents()
+    {
+        Logger.Debug("Register events called!");
+        WarheadHandler = new WarheadHandler(this);
+        ServerHandler = new ServerHandler(this);
 
-        public override void OnEnabled()
+        // Server
+        Logger.Debug("Server events registering!");
+        Server.RoundStarted += ServerHandler.OnRoundStarted;
+        Server.WaitingForPlayers += ServerHandler.OnWaitingForPlayers;
+        Server.RestartingRound += ServerHandler.OnRestartingRound;
+
+        Logger.Debug("RWarhead events registering!");
+        // Warhead
+        WarheadEvents.Starting += WarheadHandler.OnStarting;
+        Warhead.Stopping += WarheadHandler.OnStopping;
+        Warhead.Detonated += WarheadHandler.OnDetonated;
+        Logger.Debug("Register events finished!");
+    }
+
+    private void UnregisterEvents()
+    {
+        Logger.Debug("Unregister events called!");
+        // Server
+        if (ServerHandler != null)
         {
-            RegisterEvents();
-            base.OnEnabled();
+            Logger.Debug("ServerHandler was NOT null. Unsubscribing!");
+            Server.RoundStarted -= ServerHandler.OnRoundStarted;
+            Server.WaitingForPlayers -= ServerHandler.OnWaitingForPlayers;
+            Server.RestartingRound -= ServerHandler.OnRestartingRound;
+            Logger.Debug("ServerHandler was NOT null. Unsubscribed!");
         }
 
-        public override void OnDisabled()
+        // Warhead
+        if (WarheadHandler != null)
         {
-            UnregisterEvents();
-            base.OnDisabled();
+            Logger.Debug("WarheadHandler was NOT null. Unsubscribing!");
+            WarheadEvents.Starting -= WarheadHandler.OnStarting;
+            Warhead.Stopping -= WarheadHandler.OnStopping;
+            Warhead.Detonated -= WarheadHandler.OnDetonated;
+            Logger.Debug("WarheadHandler was NOT null. Unsubscribed!");
         }
 
-        private void RegisterEvents()
-        {
-            _warheadHandler = new WarheadHandler(this);
-            _serverHandler = new ServerHandler(this);
-
-            // Server
-            Server.RoundStarted += _serverHandler.OnRoundStarted;
-            Server.WaitingForPlayers += _serverHandler.OnWaitingForPlayers;
-            Server.RestartingRound += _serverHandler.OnRestartingRound;
-
-            // Warhead
-            Warhead.Starting += _warheadHandler.OnStarting;
-            Warhead.Stopping += _warheadHandler.OnStopping;
-            Warhead.Detonated += _warheadHandler.OnDetonated;
-        }
-
-        private void UnregisterEvents()
-        {
-            // Server
-            if (_serverHandler != null)
-            {
-                Server.RoundStarted -= _serverHandler.OnRoundStarted;
-                Server.WaitingForPlayers -= _serverHandler.OnWaitingForPlayers;
-                Server.RestartingRound -= _serverHandler.OnRestartingRound;
-            }
-            // Warhead
-            if (_warheadHandler != null)
-            {
-                Warhead.Starting -= _warheadHandler.OnStarting;
-                Warhead.Stopping -= _warheadHandler.OnStopping;
-                Warhead.Detonated -= _warheadHandler.OnDetonated;
-            }
-            _warheadHandler = null;
-            _serverHandler = null;
-        }
+        Logger.Debug("Killing coroutines and clearing rooms list..");
+        WarheadHandler.RoomBaseColorAndRoom?.Clear();
+        Timing.KillCoroutines(NukeCoroutine, RadiationCoroutine, CassieWarnings);
+        AutoNukeTimerCalled = false;
+        CassieWarningsCalled = false;
+        RadiationCalled = false;
+        Logger.Debug("Passed warheadhandler isn't null and serverhandler isn't null - moving on to nullify these two.");
+        WarheadHandler = null;
+        ServerHandler = null;
+        Logger.Debug("Unregister events finished!");
     }
 }
